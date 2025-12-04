@@ -1,0 +1,21 @@
+# Системные файлы
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Next.js
+.next/
+out/
+
+# Зависимости
+node_modules/
+
+# Логи
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env*.local
