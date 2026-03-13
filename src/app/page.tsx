@@ -1,137 +1,120 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import {
-  addTask,
-  removeTask,
-  startTask,
-  stopCurrentTask,
-  Task
-} from "../tasks/taskSlice";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
-import { TaskForm } from "../components/task-form/TaskForm";
-import { TaskList } from "../components/task-list/TaskList";
 
-interface DisplayTask extends Task {
-  totalElapsedMs: number;
-  isOverdue: boolean;
-  progress: number;
-}
-
-function formatDuration(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  const hours = Math.floor(minutes / 60);
-  const restMinutes = minutes % 60;
-
-  const parts = [];
-  if (hours > 0) parts.push(`${hours}ч`);
-  if (restMinutes > 0 || hours > 0) parts.push(`${restMinutes}м`);
-  parts.push(`${seconds.toString().padStart(2, "0")}с`);
-  return parts.join(" ");
-}
+type Tab = "login" | "register";
+type Step = "form" | "code";
 
 export default function HomePage() {
-  const dispatch = useAppDispatch();
-  const { items, currentTaskId } = useAppSelector((s) => s.tasks);
-
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [hours, setHours] = useState(0);
-  const [minutes, setMinutes] = useState(30);
-  const [search, setSearch] = useState("");
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const tasks: DisplayTask[] = useMemo(() => {
-    return items.map((t) => {
-      const extra = t.startedAt ? now - t.startedAt : 0;
-      const totalElapsedMs = t.elapsedMs + extra;
-      const estimatedMs = t.estimatedMinutes * 60 * 1000;
-      const progress = estimatedMs
-        ? Math.min((totalElapsedMs / estimatedMs) * 100, 100)
-        : 0;
-
-      return {
-        ...t,
-        totalElapsedMs,
-        isOverdue: estimatedMs > 0 && totalElapsedMs > estimatedMs,
-        progress
-      };
-    });
-  }, [items, now]);
-
-  const filtered = useMemo(
-    () =>
-      tasks.filter((t) => {
-        if (!search.trim()) return true;
-        const q = search.toLowerCase();
-        return (
-          t.name.toLowerCase().includes(q) ||
-          t.description.toLowerCase().includes(q)
-        );
-      }),
-    [tasks, search]
-  );
+  const router = useRouter();
+  const [tab, setTab] = useState<Tab>("login");
+  const [step, setStep] = useState<Step>("form");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    if (hours < 0 || minutes < 0) return;
+    if (tab === "login") {
+      router.push("/dashboard");
+      return;
+    }
+    if (tab === "register") setStep("code");
+  };
 
-    dispatch(
-      addTask({
-        name: name.trim(),
-        description: description.trim(),
-        hours,
-        minutes
-      })
-    );
-
-    setName("");
-    setDescription("");
-    setHours(0);
-    setMinutes(30);
+  const handleBack = () => {
+    setStep("form");
+    setCode("");
   };
 
   return (
-    <main className={styles.page}>
-      <div className={styles.pageInner}>
-        <header className={styles.header}>
-          <h1 className={styles.title}>
-            Трекер задач
-          </h1>
-        </header>
-        <TaskForm
-          name={name}
-          description={description}
-          hours={hours}
-          minutes={minutes}
-          onNameChange={setName}
-          onDescriptionChange={setDescription}
-          onHoursChange={setHours}
-          onMinutesChange={setMinutes}
-          onSubmit={handleSubmit}
-        />
+    <div className={styles.rootWrap}>
+    <main className={styles.root}>
+      <div className={styles.card}>
+        <h1 className={styles.logo}>Monitor</h1>
 
-        <TaskList
-          tasks={filtered}
-          currentTaskId={currentTaskId}
-          search={search}
-          onSearchChange={setSearch}
-          onStart={(id) => dispatch(startTask(id))}
-          onStop={() => dispatch(stopCurrentTask())}
-          onRemove={(id) => dispatch(removeTask(id))}
-          formatDuration={formatDuration}
-        />
+        <div className={styles.tabs}>
+          <button
+            type="button"
+            className={`${styles.tab} ${tab === "login" ? styles.tabActive : ""}`}
+            onClick={() => { setTab("login"); setStep("form"); }}
+          >
+            Вход
+          </button>
+          <button
+            type="button"
+            className={`${styles.tab} ${tab === "register" ? styles.tabActive : ""}`}
+            onClick={() => { setTab("register"); setStep("form"); }}
+          >
+            Регистрация
+          </button>
+        </div>
+
+        {step === "form" ? (
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Email</span>
+              <input
+                type="email"
+                className={styles.input}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </div>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Имя пользователя</span>
+              <input
+                type="text"
+                className={styles.input}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
+              />
+            </div>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Пароль</span>
+              <input
+                type="password"
+                className={styles.input}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={tab === "login" ? "current-password" : "new-password"}
+              />
+            </div>
+            <button type="submit" className={styles.btnPrimary}>
+              Войти
+            </button>
+          </form>
+        ) : (
+          <div className={styles.codeBlock}>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Код</span>
+              <input
+                type="text"
+                className={styles.input}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder=""
+                maxLength={6}
+              />
+            </div>
+            <button type="button" className={styles.btnPrimary}>
+              Подтвердить
+            </button>
+            <button type="button" className={styles.btnSecondary}>
+              Отправить код повторно
+            </button>
+            <button type="button" className={styles.btnBack} onClick={handleBack}>
+              Назад
+            </button>
+          </div>
+        )}
       </div>
     </main>
+    </div>
   );
 }
-

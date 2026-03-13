@@ -3,7 +3,13 @@
 @tailwind utilities;
 
 body {
-  @apply bg-slate-900 text-slate-50;
+  background: #080c12;
+  color: #f0f6fc;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "rlig" 1, "calt" 1;
 }
 
-
+input::placeholder {
+  @apply text-slate-500;
+}
